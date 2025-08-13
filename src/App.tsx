@@ -15,7 +15,7 @@ import React, { useEffect, useMemo, useRef, useState, useId } from "react";
 
 // ---- Constants (credit card dimensions per ISO/IEC 7810 ID‑1) ----
 const CREDIT_CARD_WIDTH_MM = 85.60; // width
-const CREDIT_CARD_HEIGHT_MM = 53.98; // height (not strictly needed here)
+//const CREDIT_CARD_HEIGHT_MM = 53.98; // height (not strictly needed here)
 
 // SVG design size used for on‑screen credit card (like your example)
 const CARD_SVG_PX = { w: 389, h: 246 };
@@ -41,40 +41,40 @@ function pxPerMMFromScreenScale(scale: number) {
 }
 
 // ---- Draggable handle component (reusable) ----
-function Handle({ x, y, onDrag, onDragStart, onDragEnd }: { x: number, y: number, onDrag: (p: Pt) => void, onDragStart?: (p: Pt) => void, onDragEnd?: () => void }) {
-  const downRef = useRef(false);
-  const rafRef = useRef<number | null>(null);
-  const pendingRef = useRef<Pt | null>(null);
-  const getLocal = (e: React.PointerEvent) => {
-    const node = e.currentTarget as any;
-    const svg: SVGSVGElement = (node.ownerSVGElement || node) as SVGSVGElement;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    const res = ctm ? pt.matrixTransform(ctm.inverse()) : { x: e.clientX, y: e.clientY } as any;
-    return { x: res.x, y: res.y } as Pt;
-  };
-  const flush = () => {
-    rafRef.current = null;
-    if (pendingRef.current) {
-      onDrag(pendingRef.current);
-      pendingRef.current = null;
-    }
-  };
-  const onDown = (e: React.PointerEvent) => { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); downRef.current = true; const p=getLocal(e); onDragStart?.(p); };
-  const onMove = (e: React.PointerEvent) => {
-    if (!downRef.current) return;
-    pendingRef.current = getLocal(e);
-    if (rafRef.current == null) rafRef.current = requestAnimationFrame(flush);
-  };
-  const onUp = () => { downRef.current = false; if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } onDragEnd?.(); };
-  return (
-    <g onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-      <circle cx={x} cy={y} r={16} className="handleHit" />
-      <circle cx={x} cy={y} r={10} className="handle" />
-    </g>
-  );
-}
+// function Handle({ x, y, onDrag, onDragStart, onDragEnd }: { x: number, y: number, onDrag: (p: Pt) => void, onDragStart?: (p: Pt) => void, onDragEnd?: () => void }) {
+//   const downRef = useRef(false);
+//   const rafRef = useRef<number | null>(null);
+//   const pendingRef = useRef<Pt | null>(null);
+//   const getLocal = (e: React.PointerEvent) => {
+//     const node = e.currentTarget as any;
+//     const svg: SVGSVGElement = (node.ownerSVGElement || node) as SVGSVGElement;
+//     const pt = svg.createSVGPoint();
+//     pt.x = e.clientX; pt.y = e.clientY;
+//     const ctm = svg.getScreenCTM();
+//     const res = ctm ? pt.matrixTransform(ctm.inverse()) : { x: e.clientX, y: e.clientY } as any;
+//     return { x: res.x, y: res.y } as Pt;
+//   };
+//   const flush = () => {
+//     rafRef.current = null;
+//     if (pendingRef.current) {
+//       onDrag(pendingRef.current);
+//       pendingRef.current = null;
+//     }
+//   };
+//   const onDown = (e: React.PointerEvent) => { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); downRef.current = true; const p=getLocal(e); onDragStart?.(p); };
+//   const onMove = (e: React.PointerEvent) => {
+//     if (!downRef.current) return;
+//     pendingRef.current = getLocal(e);
+//     if (rafRef.current == null) rafRef.current = requestAnimationFrame(flush);
+//   };
+//   const onUp = () => { downRef.current = false; if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } onDragEnd?.(); };
+//   return (
+//     <g onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
+//       <circle cx={x} cy={y} r={16} className="handleHit" />
+//       <circle cx={x} cy={y} r={10} className="handle" />
+//     </g>
+//   );
+// }
 
 // Round-shaped draggable handle (for line endpoints - mobile friendly)
 function RoundHandle({ x, y, onDrag, onDragStart, onDragEnd, onDragMove }: { x: number, y: number, onDrag: (p: Pt) => void, onDragStart?: (p: Pt) => void, onDragEnd?: () => void, onDragMove?: (p: Pt)=>void }) {
