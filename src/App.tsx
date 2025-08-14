@@ -15,7 +15,6 @@ import React, { useEffect, useMemo, useRef, useState, useId } from "react";
 
 // ---- Constants (credit card dimensions per ISO/IEC 7810 ID‑1) ----
 const CREDIT_CARD_WIDTH_MM = 85.60; // width
-//const CREDIT_CARD_HEIGHT_MM = 53.98; // height (not strictly needed here)
 
 // SVG design size used for on‑screen credit card (like your example)
 const CARD_SVG_PX = { w: 389, h: 246 };
@@ -40,43 +39,73 @@ function pxPerMMFromScreenScale(scale: number) {
   return (CARD_SVG_PX.w * scale) / CREDIT_CARD_WIDTH_MM; // px per mm on this screen
 }
 
-// ---- Draggable handle component (reusable) ----
-// function Handle({ x, y, onDrag, onDragStart, onDragEnd }: { x: number, y: number, onDrag: (p: Pt) => void, onDragStart?: (p: Pt) => void, onDragEnd?: () => void }) {
-//   const downRef = useRef(false);
-//   const rafRef = useRef<number | null>(null);
-//   const pendingRef = useRef<Pt | null>(null);
-//   const getLocal = (e: React.PointerEvent) => {
-//     const node = e.currentTarget as any;
-//     const svg: SVGSVGElement = (node.ownerSVGElement || node) as SVGSVGElement;
-//     const pt = svg.createSVGPoint();
-//     pt.x = e.clientX; pt.y = e.clientY;
-//     const ctm = svg.getScreenCTM();
-//     const res = ctm ? pt.matrixTransform(ctm.inverse()) : { x: e.clientX, y: e.clientY } as any;
-//     return { x: res.x, y: res.y } as Pt;
-//   };
-//   const flush = () => {
-//     rafRef.current = null;
-//     if (pendingRef.current) {
-//       onDrag(pendingRef.current);
-//       pendingRef.current = null;
-//     }
-//   };
-//   const onDown = (e: React.PointerEvent) => { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); downRef.current = true; const p=getLocal(e); onDragStart?.(p); };
-//   const onMove = (e: React.PointerEvent) => {
-//     if (!downRef.current) return;
-//     pendingRef.current = getLocal(e);
-//     if (rafRef.current == null) rafRef.current = requestAnimationFrame(flush);
-//   };
-//   const onUp = () => { downRef.current = false; if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } onDragEnd?.(); };
-//   return (
-//     <g onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-//       <circle cx={x} cy={y} r={16} className="handleHit" />
-//       <circle cx={x} cy={y} r={10} className="handle" />
-//     </g>
-//   );
-// }
+// ---- Onboarding overlay ----
+function Onboarding({ open, onClose, onReplayPhoto }: { open:boolean; onClose:()=>void; onReplayPhoto: ()=>void }){
+  const [step, setStep] = useState(0);
+  const steps = [
+    { title: "Welcome", body: "This app measures parcels using two photos: top view for length/width and side view for height." },
+    { title: "Top view", body: "Upload or capture a top‑down photo. Drag the blue calibration line over a known object (credit card/ruler), then fit the rectangle around the parcel surface." },
+    { title: "Side view", body: "Upload or capture a side photo. Drag the blue line to calibrate, then drag the amber line to match the parcel height." },
+    { title: "Locker match", body: "The app recommends SMALL/MEDIUM/LARGE based on the measured dimensions." },
+    { title: "Tips", body: "Keep the phone parallel to the surface, avoid perspective, and use the magnifier for precise placement." },
+  ];
+  if (!open) return null as any;
+  return (
+    <div className="tourOverlay" role="dialog" aria-modal>
+      <div className="tourCard">
+        <div className="tourHeader">
+          <h3>{steps[step].title}</h3>
+          <button className="tourX" onClick={()=>{ localStorage.setItem('tour_done','1'); onClose(); }} aria-label="Close">✕</button>
+        </div>
+        <p>{steps[step].body}</p>
+        <div className="tourActions">
+          <button onClick={()=>{ localStorage.setItem('tour_done','1'); onClose(); }}>Skip</button>
+          <div className="spacer" />
+          {step>0 && <button onClick={()=>setStep(step-1)}>Back</button>}
+          {step<steps.length-1 ? (
+            <button className="cta" onClick={()=>setStep(step+1)}>Next</button>
+          ) : (
+            <>
+              <button onClick={()=>{ onReplayPhoto(); setStep(0); }}>Watch demo</button>
+              <button className="cta" onClick={()=>{ localStorage.setItem('tour_done','1'); onClose(); }}>Start</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-// Round-shaped draggable handle (for line endpoints - mobile friendly)
+// ---- Demo animation overlay (non-interactive) ----
+function DemoOverlay({ show, onClose }: { show:boolean; onClose:()=>void }){
+  if (!show) return null as any;
+  return (
+    <div className="demoOverlay" onClick={onClose}>
+      <div className="demoCard">
+        <h3>How to measure</h3>
+        <ol>
+          <li>Drag the blue line over a known length to calibrate.</li>
+          <li>Fit the thin rectangle around the parcel top face.</li>
+          <li>Switch to side view and drag the amber line to match height.</li>
+        </ol>
+        <p className="muted">Tap anywhere to close</p>
+      </div>
+      <svg className="demoAnim" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid meet" aria-hidden>
+        <rect x="40" y="80" width="520" height="200" className="demoRect" />
+        <g className="demoCal">
+          <line x1="120" y1="60" x2="480" y2="60" />
+          <circle cx="120" cy="60" r="10" />
+          <circle cx="480" cy="60" r="10" />
+        </g>
+        <g className="demoHand">
+          <circle cx="0" cy="0" r="10" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// ---- Round-shaped draggable handle (for line endpoints - mobile friendly) ----
 function RoundHandle({ x, y, onDrag, onDragStart, onDragEnd, onDragMove }: { x: number, y: number, onDrag: (p: Pt) => void, onDragStart?: (p: Pt) => void, onDragEnd?: () => void, onDragMove?: (p: Pt)=>void }) {
   const downRef = useRef(false);
   const rafRef = useRef<number | null>(null);
@@ -284,7 +313,8 @@ function PhotoMeasure() {
   type ImgSize = { w:number; h:number };
   type Rect = { x:number; y:number; w:number; h:number };
 
-  const [step, setStep] = useState<'top'|'side'>('top');
+  const [step, setStep] = useState<'top'|'side'>("top");
+  const [showDemo, setShowDemo] = useState(false);
 
   // Top View (length/width)
   const [topImgURL, setTopImgURL] = useState<string | null>(null);
@@ -399,10 +429,12 @@ function PhotoMeasure() {
 
   return (
     <div className="panel">
+      <DemoOverlay show={showDemo} onClose={()=>setShowDemo(false)} />
       <div className="stepper">
         <button className={step==='top' ? 'active' : ''} onClick={()=>setStep('top')}>1. Top View</button>
         <button className={step==='side' ? 'active' : ''} onClick={()=>setStep('side')} disabled={!stepDoneTop}>2. Side View</button>
         <div className="spacer" />
+        <button onClick={()=>setShowDemo(true)}>Watch demo</button>
         <button className="cta" onClick={()=>setStep('side')} disabled={!stepDoneTop}>Next</button>
       </div>
 
@@ -528,6 +560,9 @@ function PhotoMeasure() {
 // ---- Main App (tabs) ----
 export default function App() {
   const [tab, setTab] = useState<'photo'|'screen'>("photo");
+  const [tourOpen, setTourOpen] = useState(()=> localStorage.getItem('tour_done') !== '1');
+  const [openDemoFromTour, setOpenDemoFromTour] = useState(false);
+
   return (
     <div className="app">
       <style>{css}</style>
@@ -536,8 +571,10 @@ export default function App() {
         <nav>
           <button className={tab==='photo'? 'active':''} onClick={()=>setTab('photo')}>Measure from Photo</button>
           <button className={tab==='screen'? 'active':''} onClick={()=>setTab('screen')}>Calibrate Screen</button>
+          <button onClick={()=>{ localStorage.removeItem('tour_done'); setTourOpen(true); }}>Replay Tutorial</button>
         </nav>
       </header>
+      <Onboarding open={tourOpen} onClose={()=>setTourOpen(false)} onReplayPhoto={()=>{ setTab('photo'); setTourOpen(false); setOpenDemoFromTour(true); }} />
       {tab === 'photo' ? <PhotoMeasure/> : <ScreenCalibration/>}
       <footer>
         <p>
@@ -555,12 +592,34 @@ const css = `
 .app{ max-width:1000px; margin:0 auto; padding:16px; }
 header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
 h1{ font-size:20px; margin:0; }
-nav{ display:flex; gap:8px; }
+nav{ display:flex; gap:8px; flex-wrap:wrap; }
 nav button{ background:transparent; border:1px solid var(--accent); color:var(--ink); padding:8px 12px; border-radius:12px; cursor:pointer; }
 nav button.active{ background:var(--accent); color:#0b1020; }
 .panel{ background:var(--card); padding:16px; border-radius:16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
 .panel h2{ margin:0 0 8px; font-size:18px; }
 .panel p{ color:var(--muted); margin:0 0 12px; }
+
+/* Onboarding modal */
+.tourOverlay{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:50; }
+.tourCard{ background:#10173a; border:1px solid #2b3766; border-radius:16px; padding:16px; width:min(520px, 92vw); color:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.45); }
+.tourHeader{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.tourHeader h3{ margin:0; font-size:18px; }
+.tourX{ background:transparent; border:0; color:#bcd1ff; cursor:pointer; font-size:18px; }
+.tourActions{ display:flex; align-items:center; gap:8px; margin-top:12px; }
+.tourActions .spacer{ flex:1; }
+.tourActions button{ background:#0f1733; border:1px solid #2b3766; color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer; }
+.tourActions .cta{ background:linear-gradient(180deg, #7aa2f7, #6ea8fe); color:#0b1020; border:none; }
+
+/* Demo overlay */
+.demoOverlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:40; }
+.demoCard{ background:#0e1533; border:1px solid #2b3766; color:var(--ink); border-radius:14px; padding:12px 16px; margin-bottom:12px; width:min(560px, 92vw); }
+.demoAnim{ width:min(560px, 92vw); height:auto; border-radius:12px; background:#0b112e; }
+.demoRect{ fill:none; stroke:#7aa2f7; stroke-width:2; }
+.demoCal line{ stroke:var(--line); stroke-width:2; stroke-dasharray:12 8; }
+.demoCal circle{ fill:#2ee8ff; }
+.demoHand{ animation: handMove 2.4s ease-in-out infinite; }
+.demoHand circle{ fill:#fff; }
+@keyframes handMove{ 0%{ transform: translate(120px,60px);} 50%{ transform: translate(480px,60px);} 100%{ transform: translate(120px,60px);} }
 
 /* Stepper */
 .stepper{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
@@ -629,5 +688,5 @@ nav button.active{ background:var(--accent); color:#0b1020; }
 .result .muted{ color:#9db1ff; }
 .result .dims{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:8px; }
 
-footer{ color:var(--muted); margin-top:12px; font-size:12px; }
+footer{ color:#bcd1ff; opacity:.85; margin-top:12px; font-size:12px; }
 `;
