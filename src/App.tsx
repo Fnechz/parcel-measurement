@@ -443,17 +443,17 @@ function PhotoMeasure() {
           <h2>Top view: length × width</h2>
           <p>Take or upload a top‑down photo with a known object (credit card or ruler), drag the calibration line over it, then fit the rectangle around the parcel’s top face.</p>
 
-          <div className="controls">
-            <label className="file">
+      <div className="controls">
+        <label className="file">
               <input type="file" accept="image/*" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) onTopFile(f); }} />
-              <span>Upload photo…</span>
-            </label>
+          <span>Upload photo…</span>
+        </label>
             <label className="file cameraBtn">
               <input type="file" accept="image/*" capture="environment" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) onTopFile(f); }} />
               <span>Use camera</span>
             </label>
-            <label>
-              Ref length (mm)
+        <label>
+          Ref length (mm)
               <input type="number" value={topCalReal} min={1} step={0.1} onChange={(e)=>setTopCalReal(Number(e.target.value))} />
             </label>
             <div className="hint">Tip: Align your phone parallel to the parcel to reduce perspective distortion.</div>
@@ -502,15 +502,15 @@ function PhotoMeasure() {
             <label className="file cameraBtn">
               <input type="file" accept="image/*" capture="environment" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) onSideFile(f); }} />
               <span>Use camera</span>
-            </label>
-            <label>
+        </label>
+        <label>
               Ref length (mm)
               <input type="number" value={sideCalReal} min={1} step={0.1} onChange={(e)=>setSideCalReal(Number(e.target.value))} />
-            </label>
+        </label>
             <div className="hint">Tip: Keep the phone level; ensure the box edge is vertical in the frame.</div>
-          </div>
+      </div>
 
-          <div className="canvasWrap">
+      <div className="canvasWrap">
             {sideImgURL ? (
               <svg className="stage" viewBox={`0 0 ${sideImgSize.w||800} ${sideImgSize.h||500}`} preserveAspectRatio="xMidYMid meet">
                 <image href={sideImgURL} x={0} y={0} width={sideImgSize.w||800} height={sideImgSize.h||500} preserveAspectRatio="xMidYMid slice" />
@@ -522,15 +522,15 @@ function PhotoMeasure() {
                 {showMagSide && sideImgURL && (
                   <SVGMagnifier show={showMagSide} x={magSidePt.x} y={magSidePt.y} imgURL={sideImgURL} imgSize={sideImgSize} scale={3} r={64} id={`mag${magSideId}`} />
                 )}
-              </svg>
-            ) : (
+          </svg>
+        ) : (
               <div className="placeholder">Upload or capture a side photo to measure height</div>
-            )}
-          </div>
+        )}
+      </div>
 
-          <div className="stats">
+      <div className="stats">
             <div><b>px per mm (image)</b><span>{fmt(sidePxPerMM,2)}</span></div>
-            <div><b>Height</b><span>{fmt(heightMM,1)} mm ({fmt(heightMM/10,1)} cm)</span></div>
+        <div><b>Height</b><span>{fmt(heightMM,1)} mm ({fmt(heightMM/10,1)} cm)</span></div>
           </div>
 
           {(stepDoneTop && stepDoneSide) && (
@@ -550,7 +550,7 @@ function PhotoMeasure() {
             <button onClick={()=>setStep('top')}>Back</button>
             <div className="spacer" />
             <button className="cta" disabled={!(stepDoneTop && stepDoneSide)} onClick={()=>window.scrollTo({ top: 0, behavior: 'smooth' })}>Done</button>
-          </div>
+      </div>
         </>
       )}
     </div>
@@ -561,7 +561,6 @@ function PhotoMeasure() {
 export default function App() {
   const [tab, setTab] = useState<'photo'|'screen'>("photo");
   const [tourOpen, setTourOpen] = useState(()=> localStorage.getItem('tour_done') !== '1');
-  const [openDemoFromTour, setOpenDemoFromTour] = useState(false);
 
   return (
     <div className="app">
@@ -574,7 +573,7 @@ export default function App() {
           <button onClick={()=>{ localStorage.removeItem('tour_done'); setTourOpen(true); }}>Replay Tutorial</button>
         </nav>
       </header>
-      <Onboarding open={tourOpen} onClose={()=>setTourOpen(false)} onReplayPhoto={()=>{ setTab('photo'); setTourOpen(false); setOpenDemoFromTour(true); }} />
+      <Onboarding open={tourOpen} onClose={()=>setTourOpen(false)} onReplayPhoto={()=>{ setTab('photo'); setTourOpen(false); }} />
       {tab === 'photo' ? <PhotoMeasure/> : <ScreenCalibration/>}
       <footer>
         <p>
